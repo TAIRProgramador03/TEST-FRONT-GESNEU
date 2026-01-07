@@ -207,10 +207,22 @@ export const ModalDesasignar: React.FC<ModalDesasignarProps> = ({
 
           if (index >= 0) {
             // Reemplazar neumático existente
-            nuevoEstado[index] = neumaticoTemporal;
+            nuevoEstado[index] = {
+              ...neumaticoTemporal,
+              ID_ASIGNADO: asig.IdAsignado,
+              MARCA: asig.Marca,
+              MEDIDA: asig.Medida,
+              ESTADO: asig.Estado
+            };
           } else {
             // Agregar nuevo neumático
-            nuevoEstado.push(neumaticoTemporal);
+            nuevoEstado.push({
+              ...neumaticoTemporal,
+              ID_ASIGNADO: asig.IdAsignado,
+              MARCA: asig.Marca,
+              MEDIDA: asig.Medida,
+              ESTADO: asig.Estado
+            });
           }
         });
 
@@ -429,7 +441,7 @@ export const ModalDesasignar: React.FC<ModalDesasignarProps> = ({
 
     const neumaticosPorPosicion = new Map<string, Array<{ codigo: string; enArea: boolean }>>();
 
-    neumaticosParaProcesar.forEach(n => {
+    neumaticosParaProcesar.forEach((n: NeumaticoExtendido) => {
       const pos = n.POSICION || n.POSICION_NEU;
       if (pos && (pos.startsWith('POS') || pos === 'RES01')) {
         const codigo = n.CODIGO_NEU || n.CODIGO || '';

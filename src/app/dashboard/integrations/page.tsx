@@ -17,7 +17,7 @@ import MenuItem from '@mui/material/MenuItem';
 import Menu from '@mui/material/Menu';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Paper from '@mui/material/Paper';
-import Select, { SelectChangeEvent } from '@mui/material/Select';
+import { SelectChangeEvent } from '@mui/material/Select';
 import Snackbar from '@mui/material/Snackbar';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
@@ -27,7 +27,6 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
-import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import { MagnifyingGlass } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
@@ -37,7 +36,6 @@ import { Wrench } from '@phosphor-icons/react/dist/ssr/Wrench';
 import { CompaniesFilters } from '@/components/dashboard/integrations/integrations-filters';
 import ModalAsignacionNeu from '@/components/dashboard/integrations/modal-asignacionNeu';
 import ModalAsignacionNeuDesdeDesasignacion from '@/components/dashboard/integrations/modal-asignacionNeuDesdeDesasignacion';
-import ModalDeleteNeu from '@/components/dashboard/integrations/modal-deleteNeu';
 import ModalInpeccionNeu from '@/components/dashboard/integrations/modal-inspeccionNeu';
 import ModalReubicar from '@/components/dashboard/integrations/modal-reubicar';
 import ModalDesasignar from '@/components/dashboard/integrations/modal-desasignar';
@@ -45,7 +43,6 @@ import DiagramaVehiculo from '@/styles/theme/components/DiagramaVehiculo';
 import { Neumatico } from '@/types/types';
 import { useUser } from '@/hooks/use-user';
 import ModalConfirmarInspDesasignar from '@/components/core/theme-provider/modal-desasignar/modal-confirmar-inspDesasignar';
-import { obtenerInfoDesgaste, calcularPorcentajeDesgaste } from '@/utils/tireUtils';
 
 export default function Page(): React.JSX.Element {
   const [bloqueoReubicacion, setBloqueoReubicacion] = useState(false);
@@ -87,7 +84,7 @@ export default function Page(): React.JSX.Element {
   const [modoMantenimiento, setModoMantenimiento] = React.useState<'REUBICAR' | 'DESASIGNAR' | null>(null);
   const [anchorMenuMantenimiento, setAnchorMenuMantenimiento] = React.useState<null | HTMLElement>(null);
   const [loading, setLoading] = React.useState(false);
-  const [assignedNeumaticos, setAssignedNeumaticos] = React.useState<{ [key: string]: Neumatico | null }>({});
+  const [assignedNeumaticos, setAssignedNeumaticos] = React.useState<{ [key: string]: Neumatico | null | any }>({});
   const [assignedFromAPI, setAssignedFromAPI] = useState<Neumatico[]>([]);
   const [autosDisponiblesCount, setAutosDisponiblesCount] = useState<number>(0);
 
@@ -149,16 +146,16 @@ export default function Page(): React.JSX.Element {
         setSnackbarOpen(true);
 
         // Obtener neumáticos asignados desde la API
-        const asignados = await obtenerNeumaticosAsignadosPorPlaca(placa);
+        const asignados = (await obtenerNeumaticosAsignadosPorPlaca(placa)) as Neumatico[];
 
         // Filtrar solo los activos (excluir BAJA DEFINITIVA y RECUPERADO)
-        const neumaticosActivos = asignados.filter((n: any) =>
+        const neumaticosActivos = asignados.filter((n: Neumatico) =>
           n.TIPO_MOVIMIENTO !== 'BAJA DEFINITIVA' && n.TIPO_MOVIMIENTO !== 'RECUPERADO'
         );
 
         // Agrupar por posición y quedarse con el más reciente (mayor ID_MOVIMIENTO)
-        const porPosicion = new Map<string, typeof neumaticosActivos[0]>();
-        neumaticosActivos.forEach((n: any) => {
+        const porPosicion = new Map<string, Neumatico>();
+        neumaticosActivos.forEach((n: Neumatico) => {
           const pos = n.POSICION_NEU || n.POSICION;
           if (pos && ['POS01', 'POS02', 'POS03', 'POS04', 'RES01'].includes(pos)) {
             const existente = porPosicion.get(pos);
@@ -190,7 +187,7 @@ export default function Page(): React.JSX.Element {
         const filtrados: Neumatico[] = listaNeumaticos
           .filter((neumatico: any) =>
             neumatico.PROYECTO === vehiculoData.PROYECTO &&
-            (!user?.usuario || neumatico.USUARIO_SUPER?.trim() === user.usuario?.trim())
+            (!user?.usuario || neumatico.USUARIO_SUPER?.trim() === (user.usuario as string)?.trim())
           )
           .map((neumatico: Neumatico) => ({
             ...neumatico,
@@ -276,7 +273,7 @@ export default function Page(): React.JSX.Element {
           return;
         }
 
-        const data = await obtenerNeumaticosAsignadosPorPlaca(vehiculo.PLACA);
+        const data = (await obtenerNeumaticosAsignadosPorPlaca(vehiculo.PLACA)) as any[];
 
         // Agrupar por posición y quedarse con el más reciente (mayor ID_MOVIMIENTO)
         const neumaticosPorPosicion = new Map<string, typeof data[0]>();
@@ -334,12 +331,12 @@ export default function Page(): React.JSX.Element {
 
     // Cargar solo los neumáticos asignados a la placa seleccionada
     // Filtrar para mostrar solo los actualmente asignados (uno por posición, el más reciente)
-    const arr = await obtenerNeumaticosAsignadosPorPlaca(vehiculoSeleccionado.PLACA?.trim());
-    const neumaticosActivos = arr.filter((n: any) =>
+    const arr = (await obtenerNeumaticosAsignadosPorPlaca(vehiculoSeleccionado.PLACA?.trim())) as Neumatico[];
+    const neumaticosActivos = arr.filter((n: Neumatico) =>
       n.TIPO_MOVIMIENTO !== 'BAJA DEFINITIVA' && n.TIPO_MOVIMIENTO !== 'RECUPERADO'
     );
-    const porPosicion = new Map<string, typeof neumaticosActivos[0]>();
-    neumaticosActivos.forEach((n: any) => {
+    const porPosicion = new Map<string, Neumatico>();
+    neumaticosActivos.forEach((n: Neumatico) => {
       const pos = n.POSICION_NEU || n.POSICION;
       if (pos && ['POS01', 'POS02', 'POS03', 'POS04', 'RES01'].includes(pos)) {
         const existente = porPosicion.get(pos);
@@ -378,15 +375,16 @@ export default function Page(): React.JSX.Element {
 
     // Usar la misma API simple que las otras funciones
     obtenerNeumaticosAsignadosPorPlaca(vehiculo.PLACA)
-      .then((asignados) => {
+      .then((data) => {
+        const asignados = data as Neumatico[];
         // Filtrar solo los activos (excluir BAJA DEFINITIVA y RECUPERADO)
-        const neumaticosActivos = asignados.filter((n: any) =>
+        const neumaticosActivos = asignados.filter((n: Neumatico) =>
           n.TIPO_MOVIMIENTO !== 'BAJA DEFINITIVA' && n.TIPO_MOVIMIENTO !== 'RECUPERADO'
         );
 
         // Agrupar por posición y quedarse con el más reciente (mayor ID_MOVIMIENTO)
-        const porPosicion = new Map<string, typeof neumaticosActivos[0]>();
-        neumaticosActivos.forEach((n: any) => {
+        const porPosicion = new Map<string, Neumatico>();
+        neumaticosActivos.forEach((n: Neumatico) => {
           const pos = n.POSICION_NEU || n.POSICION;
           if (pos && ['POS01', 'POS02', 'POS03', 'POS04', 'RES01'].includes(pos)) {
             const existente = porPosicion.get(pos);
@@ -413,6 +411,7 @@ export default function Page(): React.JSX.Element {
         console.log(`\n[page.tsx] useEffect vehiculo - Neumáticos recibidos de API: ${asignados.length}`);
         console.log(`[page.tsx] Neumáticos activos después de filtrar: ${neumaticosActivos.length}`);
         console.log(`[page.tsx] Neumáticos finales después de agrupar: ${neumaticosActuales.length}`);
+
         neumaticosActuales.forEach((n, idx) => {
           console.log(`  [${idx}] CODIGO: ${n.CODIGO}, POSICION: ${n.POSICION || n.POSICION_NEU}`);
           console.log(`         ESTADO (desde backend): ${n.ESTADO} (tipo: ${typeof n.ESTADO})`);
@@ -448,16 +447,16 @@ export default function Page(): React.JSX.Element {
   const refreshAsignados = async () => {
     if (vehiculo?.PLACA) {
       // Obtener neumáticos asignados desde la API
-      const asignados = await obtenerNeumaticosAsignadosPorPlaca(vehiculo.PLACA);
+      const asignados = (await obtenerNeumaticosAsignadosPorPlaca(vehiculo.PLACA)) as Neumatico[];
 
       // Filtrar solo los activos (excluir BAJA DEFINITIVA y RECUPERADO)
-      const neumaticosActivos = asignados.filter((n: any) =>
+      const neumaticosActivos = asignados.filter((n: Neumatico) =>
         n.TIPO_MOVIMIENTO !== 'BAJA DEFINITIVA' && n.TIPO_MOVIMIENTO !== 'RECUPERADO'
       );
 
       // Agrupar por posición y quedarse con el más reciente (mayor ID_MOVIMIENTO)
-      const porPosicion = new Map<string, typeof neumaticosActivos[0]>();
-      neumaticosActivos.forEach((n: any) => {
+      const porPosicion = new Map<string, Neumatico>();
+      neumaticosActivos.forEach((n: Neumatico) => {
         const pos = n.POSICION_NEU || n.POSICION;
         if (pos && ['POS01', 'POS02', 'POS03', 'POS04', 'RES01'].includes(pos)) {
           const existente = porPosicion.get(pos);
@@ -592,7 +591,7 @@ export default function Page(): React.JSX.Element {
     };
 
     cargarFechas();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [neumaticosAsignados]); // Dependencia clave: solo cuando cambia la lista
 
   const getUltimaFechaRegistro = (neumatico: string | any) => {
@@ -659,7 +658,7 @@ export default function Page(): React.JSX.Element {
   // Animar el kilometraje mostrado cuando cambie el valor real
   useEffect(() => {
     animateKilometraje(0, ultimoKilometroReal);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [ultimoKilometroReal]);
 
   // Escuchar evento global para abrir el modal de inspección desde cualquier parte
@@ -932,8 +931,6 @@ export default function Page(): React.JSX.Element {
       return;
     }
 
-    // Si todo está bien, abre el modal de desasignación
-    handleOpenModalDesasignar();
   };
 
   // Función para DESASIGNAR - Ejecuta TODAS las validaciones ANTES de abrir modal
@@ -1590,7 +1587,7 @@ export default function Page(): React.JSX.Element {
           kilometro: vehiculo.KILOMETRO
         } : undefined}
         onSeleccionarNeumatico={() => { }}
-        onUpdateAsignados={refreshAsignados}
+        // onUpdateAsignados={refreshAsignados}
         onAbrirAsignacion={handleOpenModalConRefresh}
       />
       {/* Modal para REUBICAR */}
