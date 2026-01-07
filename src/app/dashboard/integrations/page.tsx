@@ -84,7 +84,7 @@ export default function Page(): React.JSX.Element {
   const [modoMantenimiento, setModoMantenimiento] = React.useState<'REUBICAR' | 'DESASIGNAR' | null>(null);
   const [anchorMenuMantenimiento, setAnchorMenuMantenimiento] = React.useState<null | HTMLElement>(null);
   const [loading, setLoading] = React.useState(false);
-  const [assignedNeumaticos, setAssignedNeumaticos] = React.useState<{ [key: string]: Neumatico | null | any }>({});
+
   const [assignedFromAPI, setAssignedFromAPI] = useState<Neumatico[]>([]);
   const [autosDisponiblesCount, setAutosDisponiblesCount] = useState<number>(0);
 
@@ -273,22 +273,6 @@ export default function Page(): React.JSX.Element {
           return;
         }
 
-        const data = (await obtenerNeumaticosAsignadosPorPlaca(vehiculo.PLACA)) as any[];
-
-        // Agrupar por posición y quedarse con el más reciente (mayor ID_MOVIMIENTO)
-        const neumaticosPorPosicion = new Map<string, typeof data[0]>();
-        data.forEach(n => {
-          const pos = n.POSICION_NEU;
-          if (pos && ['POS01', 'POS02', 'POS03', 'POS04', 'RES01'].includes(pos)) {
-            const existente = neumaticosPorPosicion.get(pos);
-            if (!existente || (n.ID_MOVIMIENTO || 0) > (existente.ID_MOVIMIENTO || 0)) {
-              neumaticosPorPosicion.set(pos, n);
-            }
-          }
-        });
-
-        // Pasar los neumáticos agrupados (solo el más reciente por posición)
-        setAssignedNeumaticos(Array.from(neumaticosPorPosicion.values()));
         setOpenModal(true);
       } else {
         console.error('No hay un vehículo seleccionado.');
